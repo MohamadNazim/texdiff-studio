@@ -3,7 +3,6 @@ import base64
 import json
 
 _FEMALE_GLB_B64 = None
-_MALE_GLB_B64 = None
 
 def get_female_glb_b64() -> str:
     global _FEMALE_GLB_B64
@@ -16,32 +15,20 @@ def get_female_glb_b64() -> str:
             _FEMALE_GLB_B64 = ""
     return _FEMALE_GLB_B64
 
-def get_male_glb_b64() -> str:
-    global _MALE_GLB_B64
-    if _MALE_GLB_B64 is None:
-        path = os.path.join("static", "models", "male_human_avatar.glb")
-        if os.path.exists(path):
-            with open(path, "rb") as f:
-                _MALE_GLB_B64 = base64.b64encode(f.read()).decode("ascii")
-        else:
-            _MALE_GLB_B64 = ""
-    return _MALE_GLB_B64
-
 def render_threejs_avatar_viewer(
     tile_b64: str,
     matched_style: str = "Royal Haute Couture",
     height: int = 650
 ) -> str:
     """
-    Renders an interactive Three.js WebGL fashion runway viewport where realistic, natural
-    human models (Woman in runway outfit, Man in tailored suit/kurta, or Haute Couture Dress Form)
-    wear the synthesized textile pattern in real-time feel-good motion.
+    Renders an interactive Three.js WebGL fashion runway viewport where a realistic, natural
+    Runway Human Model or Haute Couture Salon Dress Form wears the synthesized textile pattern
+    in real-time feel-good motion.
     Embedded models are self-contained via base64 memory parsing with network fallback,
     guaranteeing 100% reliable rendering without CORS or 404 iframe errors.
     """
     style_clean = matched_style.replace('"', '\\"')
     female_b64 = get_female_glb_b64()
-    male_b64 = get_male_glb_b64()
 
     return f"""
     <!DOCTYPE html>
@@ -87,7 +74,7 @@ def render_threejs_avatar_viewer(
                 background: rgba(255, 255, 255, 0.08);
                 border: 1px solid rgba(212, 175, 55, 0.28);
                 color: #f1f5f9;
-                padding: 6px 12px;
+                padding: 6px 14px;
                 font-size: 11px;
                 font-weight: 700;
                 border-radius: 7px;
@@ -194,9 +181,8 @@ def render_threejs_avatar_viewer(
 
         <div class="hud-panel">
             <span style="font-size: 11px; font-weight: 800; color: #D4AF37; margin-right: 3px;">FASHION MODEL:</span>
-            <button class="hud-btn active" id="btn-female" onclick="switchModel('female')">💃 Woman (Runway Ensemble)</button>
-            <button class="hud-btn" id="btn-male" onclick="switchModel('male')">🕺 Man (Tailored Suit)</button>
-            <button class="hud-btn" id="btn-form" onclick="switchModel('form')">👗 Studio Dress Form</button>
+            <button class="hud-btn active" id="btn-female" onclick="switchModel('female')">💃 Runway Human Avatar</button>
+            <button class="hud-btn" id="btn-form" onclick="switchModel('form')">👗 Haute Couture Dress Form</button>
 
             <div class="hud-sep"></div>
             <span style="font-size: 11px; font-weight: 700; color: #cbd5e1; margin-right: 3px;">MOTION:</span>
@@ -241,9 +227,8 @@ def render_threejs_avatar_viewer(
             const loadingText = document.getElementById('loading-text');
             const tileData = "{tile_b64}";
 
-            // Embedded In-Memory Models for 100% Reliable Loading (Zero Network Latency / Zero CORS Error)
+            // Embedded In-Memory Female Avatar Model for 100% Reliable Rendering (Zero Network Latency / Zero CORS Error)
             const femaleGlbBase64 = "{female_b64}";
-            const maleGlbBase64 = "{male_b64}";
 
             const modelCache = {{}};
             const gltfLoader = new THREE.GLTFLoader();
@@ -369,7 +354,7 @@ def render_threejs_avatar_viewer(
                         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
                     }}
                     tex.needsUpdate = true;
-                    // Initial load starts with realistic woman runway model
+                    // Initial load starts with realistic runway human avatar
                     switchModel('female');
                 }}, undefined, function(err) {{
                     console.error('Texture load notice, continuing with default model:', err);
@@ -463,14 +448,14 @@ def render_threejs_avatar_viewer(
             }}
 
             // =========================================================================
-            // 2. REALISTIC WOMAN RUNWAY MODEL (In-Memory Base64 + Network Fallback)
+            // 2. REALISTIC RUNWAY HUMAN AVATAR (In-Memory Base64 + Network Fallback)
             // =========================================================================
             function loadFemaleHuman(onDone) {{
                 if (modelCache['female']) {{
                     onDone(modelCache['female']);
                     return;
                 }}
-                showLoading(true, '💃 Fitting Ensemble onto Woman Runway Model...');
+                showLoading(true, '💃 Fitting Ensemble onto Runway Human Model...');
 
                 function setupFemaleScene(gltf) {{
                     const root = gltf.scene;
@@ -542,89 +527,10 @@ def render_threejs_avatar_viewer(
                 }}
             }}
 
-            // =========================================================================
-            // 3. REALISTIC MAN TAILORED SUIT MODEL (In-Memory Base64 + Network Fallback)
-            // =========================================================================
-            function loadMaleHuman(onDone) {{
-                if (modelCache['male']) {{
-                    onDone(modelCache['male']);
-                    return;
-                }}
-                showLoading(true, '🕺 Fitting Bespoke Tailored Suit onto Man Model...');
-
-                function setupMaleScene(gltf) {{
-                    const root = gltf.scene;
-
-                    // Normalize bounding box & height
-                    root.updateMatrixWorld(true);
-                    const box = new THREE.Box3().setFromObject(root);
-                    const size = box.getSize(new THREE.Vector3());
-                    const scale = 3.1 / (size.y || 1);
-                    root.scale.set(scale, scale, scale);
-                    root.updateMatrixWorld(true);
-
-                    // Place feet cleanly onto the stage
-                    const scaledBox = new THREE.Box3().setFromObject(root);
-                    root.position.y = -1.0 - scaledBox.min.y;
-                    root.position.x = -scaledBox.getCenter(new THREE.Vector3()).x;
-                    root.position.z = -scaledBox.getCenter(new THREE.Vector3()).z;
-
-                    const bones = {{}};
-                    root.traverse((child) => {{
-                        if (child.isBone) {{
-                            bones[child.name] = child;
-                        }}
-                        if (child.isMesh) {{
-                            child.castShadow = true;
-                            child.receiveShadow = true;
-                            // Apply pattern to tailored jacket/suit and attire (avaturn_look_0)
-                            // Head, eyes, hair, and footwear retain photorealistic materials
-                            const n = (child.name || '').toLowerCase();
-                            const m = (child.material && child.material.name ? child.material.name : '').toLowerCase();
-                            if (n.includes('look') || n.includes('suit') || n.includes('jacket') || m.includes('look') || m.includes('suit')) {{
-                                child.material = new THREE.MeshStandardMaterial({{
-                                    map: fabricTex,
-                                    bumpMap: fabricTex,
-                                    bumpScale: 0.035,
-                                    roughness: 0.65,
-                                    metalness: 0.08,
-                                    side: THREE.DoubleSide
-                                }});
-                                child.material.needsUpdate = true;
-                            }}
-                        }}
-                    }});
-
-                    const obj = {{ root, bones }};
-                    modelCache['male'] = obj;
-                    showLoading(false);
-                    onDone(obj);
-                }}
-
-                // Attempt 1: Parse from embedded in-memory Base64 (instant, zero CORS, zero 404)
-                if (maleGlbBase64 && maleGlbBase64.length > 1000) {{
-                    parseGlbFromBase64(maleGlbBase64, setupMaleScene, function(err1) {{
-                        console.warn('Male base64 parse notice, trying network fetch:', err1);
-                        fallbackMaleNetwork();
-                    }});
-                }} else {{
-                    fallbackMaleNetwork();
-                }}
-
-                function fallbackMaleNetwork() {{
-                    const url = getOriginUrl('/app/static/models/male_human_avatar.glb');
-                    gltfLoader.load(url, setupMaleScene, undefined, function(err2) {{
-                        console.error('Male avatar network load failed:', err2);
-                        showLoading(false);
-                        switchModel('form');
-                    }});
-                }}
-            }}
-
             function switchModel(type) {{
                 currentModelType = type;
                 document.querySelectorAll('.hud-panel button[id^="btn-"]').forEach(btn => {{
-                    if (btn.id === 'btn-female' || btn.id === 'btn-male' || btn.id === 'btn-form') {{
+                    if (btn.id === 'btn-female' || btn.id === 'btn-form') {{
                         btn.classList.remove('active');
                     }}
                 }});
@@ -643,8 +549,6 @@ def render_threejs_avatar_viewer(
 
                 if (type === 'female') {{
                     loadFemaleHuman(applyModel);
-                }} else if (type === 'male') {{
-                    loadMaleHuman(applyModel);
                 }} else if (type === 'form') {{
                     if (!modelCache['form']) {{
                         modelCache['form'] = buildDressForm();
