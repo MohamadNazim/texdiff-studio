@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+outputs/*.png
+outputs/*.jpg
+!outputs/texdiff_system_architecture.jpg
+.vscode/
+.idea/
